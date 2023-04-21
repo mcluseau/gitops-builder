@@ -34,7 +34,11 @@ func handleWebhook(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if webhookSecret != "" {
-		if webhookSecret != data.Secret {
+		secret := data.Secret
+		if secret == "" {
+			secret, _ = strings.CutPrefix(req.Header.Get("Authorization"), "Bearer ")
+		}
+		if webhookSecret != secret {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
