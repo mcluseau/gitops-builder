@@ -1,0 +1,8 @@
+modd.conf {}
+
+**/*.go go.mod go.sum {
+    prep: go test ./...
+    prep: go build -trimpath -o dist/ .
+
+    #prep: dist/gitops-builder --work-dir=../builder-work --git-prefix=git\@git.my.org: --apps-repo=wtf/apps --slack-hook=https://chat.my.org/hooks/XXX --trigger-git git\@git.my.org:x/y.git
+}
