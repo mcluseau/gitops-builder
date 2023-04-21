@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"text/template"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -73,7 +72,6 @@ func (d AppDesc) GetApp(tree *object.Tree) (app App, err error) {
 		}
 
 		appBytes = buf.Bytes()
-		log.Print("app bytes:\n", string(appBytes))
 	}
 
 	err = yaml.Unmarshal(appBytes, &app)

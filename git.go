@@ -31,10 +31,10 @@ func init() {
 	} else if u, p := os.Getenv("GIT_USER"), os.Getenv("GIT_PASSWORD"); u != "" && p != "" {
 		log.Print("setting git auth from $GIT_USER and $GIT_PASSWORD")
 		gitAuth = &githttp.BasicAuth{Username: u, Password: p}
-	} else if sshAuthSock := os.Getenv("SSH_AUTH_SOCK"); sshAuthSock != "" {
-		log.Print("setting git auth from $SSH_AUTH_SOCK")
+	} else if sshUser, sshAuthSock := os.Getenv("GIT_SSH_USER"), os.Getenv("SSH_AUTH_SOCK"); sshUser != "" && sshAuthSock != "" {
+		log.Print("setting git auth from $GIT_SSH_USER $SSH_AUTH_SOCK")
 		var err error
-		gitAuth, err = gitssh.NewSSHAgentAuth(sshAuthSock)
+		gitAuth, err = gitssh.NewSSHAgentAuth(sshUser)
 		if err != nil {
 			log.Print("WARNING: failed to setup SSH agent auth for git: ", err)
 		}
