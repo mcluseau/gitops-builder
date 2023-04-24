@@ -344,6 +344,8 @@ func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 
 			set.Value = strings.ReplaceAll(set.Value, "${IMAGE_TAG}", imageTag)
 
+			log.Printf("    - yaml set %s:%s to %q", set.File, set.Path, set.Value)
+
 			var in, out []byte
 
 			in, err = ioutil.ReadFile(filePath)
