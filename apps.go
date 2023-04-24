@@ -46,7 +46,7 @@ func updateApps() {
 	})
 
 	if err != nil {
-		log.Printf("failed to clone repo %q: %v", appsRepo.Repo, err)
+		log.Printf("failed to clone repo %q: %v", appsRepo.URL(), err)
 		return
 	}
 

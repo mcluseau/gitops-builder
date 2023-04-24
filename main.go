@@ -250,6 +250,10 @@ func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 	var imageTag string
 
 	srcTag, err := gitTag(srcDir, branchInfo.Source)
+	if err != nil {
+		err = fmt.Errorf("failed to get source tag: %w", err)
+		return
+	}
 
 	overlayTag := ""
 	if overlayDir == "" {
@@ -258,6 +262,7 @@ func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 	} else {
 		overlayTag, err = gitTag(overlayDir, branchInfo.Overlay)
 		if err != nil {
+			err = fmt.Errorf("failed to get overlay tag: %w", err)
 			return
 		}
 		imageTag = srcTag + "_overlay." + overlayTag + branchInfo.DockerTagSuffix
@@ -567,7 +572,7 @@ func gitTag(dir, branch string) (tag string, err error) {
 		return
 	}
 
-	ref, err := repo.Reference(plumbing.NewBranchReferenceName(branch), true)
+	ref, err := repo.Reference(plumbing.NewRemoteReferenceName("origin", branch), true)
 	if err != nil {
 		return
 	}
@@ -575,7 +580,7 @@ func gitTag(dir, branch string) (tag string, err error) {
 	tag = ref.String()[:7]
 	return
 
-	// TODO really go a describe equivalent? commit ID seems better in every case
+	// TODO really go for a git describe equivalent? commit ID seems better in every case
 }
 
 func notify(msg string) {
