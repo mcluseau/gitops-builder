@@ -289,7 +289,7 @@ func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 			dockerArgs = append(dockerArgs, "--build-arg", "OVERLAY_TAG="+overlayTag)
 		}
 
-		for _, args := range [][]string{app.DockerArgs, build.DockerArgs, branchInfo.DockerArgs} {
+		for _, args := range [][]string{dockerArgs, app.DockerArgs, build.DockerArgs, branchInfo.DockerArgs} {
 			for _, arg := range args {
 				dockerArgs = append(dockerArgs, "--build-arg", arg)
 			}
