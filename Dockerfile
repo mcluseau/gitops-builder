@@ -1,4 +1,4 @@
-from mcluseau/golang-builder:1.20.3 as build
+from mcluseau/golang-builder:1.20.4 as build
 
 from alpine:3.17
 entrypoint ["/bin/gitops-builder"]

@@ -1,0 +1,5 @@
+#! /bin/sh
+set -ex
+img=mcluseau/gitops-builder:$(git describe --always --dirty)
+docker build -t $img .
+docker push $img
