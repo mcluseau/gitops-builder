@@ -342,9 +342,10 @@ func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 		if set := deployUpdate.YamlSet; set != nil {
 			filePath := filepath.Join(deployDir, set.File)
 
-			set.Value = strings.ReplaceAll(set.Value, "${IMAGE_TAG}", imageTag)
+			origValue := set.Value
+			set.Value = strings.ReplaceAll(origValue, "${IMAGE_TAG}", imageTag)
 
-			log.Printf("    - yaml set %s:%s to %q", set.File, set.Path, set.Value)
+			log.Printf("    - yaml set %s:%s to %q (%q)", set.File, set.Path, set.Value, origValue)
 
 			var in, out []byte
 
