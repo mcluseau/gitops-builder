@@ -165,7 +165,7 @@ func (b *BuildRun) Run() (err error) {
 	dockerImage = dockerPrefix + dockerImage + ":" + imageTag
 
 	// build-args caching is crap so at least check if we already build the target image
-	if inspectErr := execCmd(srcDir, "docker", "inspect", dockerImage, "-f", "ok"); inspectErr != nil {
+	if inspectErr := execCmd(log, srcDir, "docker", "inspect", dockerImage, "-f", "ok"); inspectErr != nil {
 		dockerArgs := []string{"build", "-t", dockerImage, ".",
 			"--build-arg=GIT_TAG=" + srcTag,
 			"--build-arg=IMAGE_TAG=" + imageTag,
@@ -185,13 +185,13 @@ func (b *BuildRun) Run() (err error) {
 			}
 		}
 
-		err = execCmdWithOutput(out, srcDir, "docker", dockerArgs...)
+		err = execCmd(log, srcDir, "docker", dockerArgs...)
 		if err != nil {
 			return
 		}
 	}
 
-	err = execCmd(srcDir, "docker", "push", dockerImage)
+	err = execCmd(log, srcDir, "docker", "push", dockerImage)
 
 	if err != nil {
 		return

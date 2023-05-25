@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -135,21 +134,11 @@ func triggerFrom(repo, branch string) {
 	}
 }
 
-func execCmd(wd, bin string, args ...string) error {
+func execCmd(log *log.Logger, wd, bin string, args ...string) error {
 	cmd := exec.Command(bin, args...)
 	cmd.Dir = wd
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	log.Print("  ", wd, "$ ", bin, " ", args)
-	return cmd.Run()
-}
-
-func execCmdWithOutput(out io.Writer, wd, bin string, args ...string) error {
-	cmd := exec.Command(bin, args...)
-	cmd.Dir = wd
-	cmd.Stdout = out
-	cmd.Stderr = out
+	cmd.Stdout = log.Writer()
+	cmd.Stderr = log.Writer()
 
 	log.Print("  ", wd, "$ ", bin, " ", args)
 	return cmd.Run()
