@@ -27,10 +27,12 @@ import (
 )
 
 var (
+	hostname, _   = os.Hostname()
 	workDir       = pflag.String("work-dir", "work", "work directory")
 	triggerGit    = pflag.String("trigger-git", "", "trigger git")
 	triggerBranch = pflag.String("trigger-branch", "main", "trigger branch")
 	slackHook     = pflag.String("slack-hook", "", "Slack notification hook")
+	builderURL    = pflag.String("url", "http://"+hostname, "builder's URL")
 )
 
 func main() {
@@ -142,7 +144,7 @@ func triggerFrom(repo, branch string) {
 func runBuild(app App, build Build, branchInfo *BranchInfo) (err error) {
 	buildID := newUlid()
 
-	notifPrefix := fmt.Sprint("[", buildID, "] running ", app.Name, "/", build.Source, " (branch ", branchInfo.Source, ")")
+	notifPrefix := fmt.Sprint("[", buildID, "]("+*builderURL+"/build-logs/"+buildID+") running ", app.Name, "/", build.Source, " (branch ", branchInfo.Source, ")")
 
 	defer func() {
 		if err != nil {
