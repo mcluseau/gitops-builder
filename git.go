@@ -1,13 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/spf13/pflag"
 )
 
@@ -59,4 +65,154 @@ func cutAllowedPrefix(url string) (base string, ok bool) {
 	}
 
 	return
+}
+
+type gitOps struct {
+	log *log.Logger
+}
+
+func (g gitOps) FetchBranch(repoURL, branch, targetDir string) (err error) {
+	log := g.log
+
+	repoURL = gitURL(repoURL)
+
+	dir := targetDir + ".git"
+
+	log.Print("- fetching ", repoURL, " branch ", branch, " to ", dir)
+
+retry:
+	isFresh := true
+	repo, err := git.PlainClone(dir, true, &git.CloneOptions{
+		URL:  repoURL,
+		Auth: gitAuth,
+	})
+
+	if err == git.ErrRepositoryAlreadyExists {
+		isFresh = false
+		repo, err = git.PlainOpen(dir)
+		if err != nil {
+			err = fmt.Errorf("failed to open existing repository: %w", err)
+			return
+		}
+
+	} else if err != nil {
+		err = fmt.Errorf("failed to clone %s: %w", repoURL, err)
+		return
+	}
+
+	remote, err := repo.Remote("origin")
+	if err != nil {
+		err = fmt.Errorf("failed to get remote origin: %w", err)
+		return
+	}
+
+	if !isFresh {
+		found := false
+		for _, remoteURL := range remote.Config().URLs {
+			if remoteURL == repoURL {
+				found = true
+				break
+			}
+		}
+		if !found {
+			log.Printf("remote for origin is not %q, cloning from scratch", repoURL)
+			os.RemoveAll(targetDir)
+			goto retry
+		}
+	}
+
+	err = remote.Fetch(&git.FetchOptions{
+		Auth: gitAuth,
+		Tags: git.AllTags,
+	})
+	if err != nil {
+		if err != git.NoErrAlreadyUpToDate {
+			return
+		}
+		err = nil
+	}
+
+	log.Print("  `-> resetting deploy to remote branch ", branch)
+	err = g.CleanBranch(branch, targetDir)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (g gitOps) CleanBranch(branch, dir string) (err error) {
+	log := g.log
+
+	err = os.RemoveAll(dir)
+	if err != nil {
+		err = fmt.Errorf("failed to clean %s: %w", dir, err)
+		return
+	}
+	err = os.MkdirAll(dir, 0750)
+	if err != nil {
+		err = fmt.Errorf("failed to create %s: %w", dir, err)
+		return
+	}
+
+	repo, err := g.Open(dir+".git", dir)
+	if err != nil {
+		err = fmt.Errorf("failed to open repository in %s: %w", dir+".git", err)
+		return
+	}
+
+	ref, err := repo.Reference(plumbing.NewRemoteReferenceName("origin", branch), true)
+	if err != nil {
+		return
+	}
+
+	log.Print("- branch ", branch, " is on commit ", ref.Hash())
+
+	w, err := repo.Worktree()
+	if err != nil {
+		err = fmt.Errorf("failed to get worktree: %w", err)
+		return
+	}
+
+	if err = w.Clean(&git.CleanOptions{}); err != nil {
+		err = fmt.Errorf("failed to clean: %w", err)
+		return
+	}
+
+	if err = w.Reset(&git.ResetOptions{Commit: ref.Hash(), Mode: git.HardReset}); err != nil {
+		err = fmt.Errorf("failed to reset: %w", err)
+		return
+	}
+
+	return
+}
+
+func (g gitOps) Open(dotGitDir, dir string) (repo *git.Repository, err error) {
+	dotGit := filesystem.NewStorage(osfs.New(dotGitDir), cache.NewObjectLRUDefault())
+	work := osfs.New(dir)
+
+	repo, err = git.Open(dotGit, work)
+	if err != nil {
+		err = fmt.Errorf("failed to open repository in %s: %w", dir+".git", err)
+		return
+	}
+
+	return
+}
+
+func (g gitOps) Tag(dir, branch string) (tag string, err error) {
+	repo, err := git.PlainOpen(dir + ".git") // FIXME ".git" should be given, not added
+	if err != nil {
+		return
+	}
+
+	ref, err := repo.Reference(plumbing.NewRemoteReferenceName("origin", branch), true)
+	if err != nil {
+		return
+	}
+
+	tag = ref.String()[:7]
+	return
+
+	// TODO really go for a git describe equivalent? commit ID seems better in every case
 }
