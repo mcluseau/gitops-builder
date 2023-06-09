@@ -230,6 +230,8 @@ func (b *BuildRun) Run() (err error) {
 		}
 
 		if set := deployUpdate.YamlSet; set != nil {
+			set := *set
+
 			filePath := filepath.Join(deployDir, set.File)
 
 			origValue := set.Value
