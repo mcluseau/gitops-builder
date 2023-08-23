@@ -181,7 +181,9 @@ func (b *BuildRun) Run() (err error) {
 	dockerImage = dockerImageName + ":" + imageTag
 
 	// build-args caching is crap so at least check if we already build the target image
-	if _, _, inspectErr := docker.ImageInspectWithRaw(ctx, dockerImage); inspectErr != nil {
+	if _, _, inspectErr := docker.ImageInspectWithRaw(ctx, dockerImage); inspectErr == nil {
+		log.Print("image ", dockerImage, " already exists, not rebuilding.")
+	} else {
 		dockerArgs := []string{"build", "-t", dockerImage, ".",
 			"--build-arg=GIT_TAG=" + srcTag,
 			"--build-arg=IMAGE_TAG=" + imageTag,
