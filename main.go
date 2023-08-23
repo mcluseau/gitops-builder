@@ -42,7 +42,9 @@ func main() {
 	updateApps()
 
 	err = os.MkdirAll(*workDir, 0750)
-	fail(err)
+	if err != nil {
+		log.Fatal("failed to create work dir: ", err)
+	}
 
 	if *triggerGit != "" {
 		// single trigger run mode
@@ -56,13 +58,6 @@ func main() {
 	err = http.ListenAndServe(*bind, nil)
 	if err != nil {
 		log.Fatal(err)
-	}
-}
-
-func fail(err error) {
-	if err != nil {
-		log.Output(2, err.Error())
-		os.Exit(-1)
 	}
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,9 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -25,6 +29,17 @@ type BuildRun struct {
 }
 
 func (b *BuildRun) Run() (err error) {
+	// connect to docker
+	docker, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// setup build infos
+
 	app, build, branchInfo := b.app, b.build, b.branch
 
 	buildID := newUlid()
@@ -162,10 +177,11 @@ func (b *BuildRun) Run() (err error) {
 	if dockerImage == "" {
 		dockerImage = build.Source
 	}
-	dockerImage = dockerPrefix + dockerImage + ":" + imageTag
+	dockerImageName := dockerPrefix + dockerImage
+	dockerImage = dockerImageName + ":" + imageTag
 
 	// build-args caching is crap so at least check if we already build the target image
-	if inspectErr := execCmd(log, srcDir, "docker", "inspect", dockerImage, "-f", "ok"); inspectErr != nil {
+	if _, _, inspectErr := docker.ImageInspectWithRaw(ctx, dockerImage); inspectErr != nil {
 		dockerArgs := []string{"build", "-t", dockerImage, ".",
 			"--build-arg=GIT_TAG=" + srcTag,
 			"--build-arg=IMAGE_TAG=" + imageTag,
@@ -197,6 +213,43 @@ func (b *BuildRun) Run() (err error) {
 		return
 	}
 
+	// cleanup old images (keep latest N images)
+	type ImageTag struct {
+		Tag     string
+		ImageID string
+		Created int64
+	}
+	myImages := make([]ImageTag, 0)
+
+	allImages, err := docker.ImageList(ctx, types.ImageListOptions{All: true})
+	for _, img := range allImages {
+		for _, tag := range img.RepoTags {
+			if !strings.HasPrefix(tag, dockerImage+":") {
+				continue
+			}
+			myImages = append(myImages, ImageTag{
+				Tag:     tag,
+				ImageID: img.ID,
+				Created: img.Created,
+			})
+		}
+	}
+
+	// sort by created
+	sort.Slice(myImages, func(i, j int) bool {
+		ti, tj := myImages[i], myImages[j]
+		return ti.Created < tj.Created
+	})
+
+	if len(myImages) > 5 {
+		for _, imageTag := range myImages[5:] {
+			docker.ImageRemove(ctx, imageTag.Tag, types.ImageRemoveOptions{
+				PruneChildren: true,
+			})
+		}
+	}
+
+	// update the deployment
 	deployDir := filepath.Join(appDir, "deploy")
 	if err = g.FetchBranch(app.Deploy, branchInfo.Deploy, deployDir); err != nil {
 		return
@@ -215,7 +268,7 @@ func (b *BuildRun) Run() (err error) {
 			cmd := exec.Command("docker", "run", "--rm",
 				"-v", absDeployDir+":/work", "-w", "/work",
 				"--entrypoint", "/bin/ash",
-				"alpine:3.17", // FIXME allow configuration of this
+				"alpine:3.18", // FIXME allow configuration of this
 				"-c", deployUpdate.Script)
 			cmd.Dir = deployDir
 			cmd.Stdout = log.Writer()
