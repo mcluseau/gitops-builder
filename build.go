@@ -185,6 +185,7 @@ func (b *BuildRun) Run() (err error) {
 		log.Print("image ", dockerImage, " already exists, not rebuilding.")
 	} else {
 		dockerArgs := []string{"build", "-t", dockerImage, ".",
+			"--network=host", // we don't really want the network isolation overload
 			"--build-arg=GIT_TAG=" + srcTag,
 			"--build-arg=IMAGE_TAG=" + imageTag,
 		}
