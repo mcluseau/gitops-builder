@@ -1,0 +1,24 @@
+
+image:
+  repository: mcluseau/gitops-builder
+  pullPolicy: IfNotPresent
+  tag: "7205a81"
+
+ingress:
+  host: ""
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+
+builder:
+  storage:
+    request: 5Gi
+
+  git:
+    host:     git.example.org
+    ssh_user: git
+
+  apps_repo:  org/repo
+  slack_hook: ""
+
+  webhook_secret: OhG0Xietaer7 # XXX changeme
+

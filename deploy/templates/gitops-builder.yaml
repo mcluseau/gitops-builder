@@ -1,0 +1,101 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitops-builder
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+  selector:
+    app: gitops-builder
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitops-builder
+  labels:
+    {{- include "gitops-builder.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitops-builder
+  serviceName: ""
+  template:
+    metadata:
+      labels:
+        app: gitops-builder
+    spec:
+      containers:
+      - command:
+        - ash
+        - -c
+        - |
+          set -ex
+
+          chmod 0700 /root/.ssh
+          [ -e /root/.ssh/known_hosts ] || ssh-keyscan {{ .Values.builder.git.host }} >/root/.ssh/known_hosts
+
+          eval "$(ssh-agent)"
+          [ -e /root/.ssh/id ] || ssh-keygen -N "" -t ed25519 -f /root/.ssh/id
+
+          ssh-add /root/.ssh/id
+          ssh-add -L
+
+          exec gitops-builder \
+            --work-dir=/data \
+            --git-prefix="{{ .Values.builder.git.ssh_user }}@{{ .Values.builder.git.host }}:" \
+            --apps-repo={{ .Values.builder.apps_repo }} \
+            --slack-hook={{ .Values.builder.slack_hook }}
+        env:
+        - name: WEBHOOK_SECRET
+          value: {{ .Values.builder.webhook_secret }}
+        - name: GIT_SSH_USER
+          value: {{ .Values.builder.git.ssh_user }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: builder
+        volumeMounts:
+        - mountPath: /run
+          name: run
+        - mountPath: /root/.ssh
+          name: data
+          subPath: user/ssh
+        - mountPath: /root/.docker
+          name: data
+          subPath: user/docker
+        - mountPath: /data
+          name: data
+          subPath: builder
+      - image: docker:23.0.4-dind
+        imagePullPolicy: IfNotPresent
+        name: docker
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /run
+          name: run
+        - mountPath: /data
+          name: data
+          subPath: builder
+        - mountPath: /var/lib/docker
+          name: data
+          subPath: docker
+      volumes:
+      - emptyDir: {}
+        name: run
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      volumeMode: Filesystem
+      resources:
+        requests:
+          storage: {{ .Values.builder.storage.request }}
