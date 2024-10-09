@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.6.0
+
 from mcluseau/golang-builder:1.23.2 as build
 
 from docker:27.3.1-cli-alpine3.20

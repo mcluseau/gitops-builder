@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -13,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -224,7 +223,7 @@ func (b *BuildRun) Run() (err error) {
 	}
 	myImages := make([]ImageTag, 0)
 
-	allImages, err := docker.ImageList(ctx, types.ImageListOptions{All: true})
+	allImages, err := docker.ImageList(ctx, image.ListOptions{All: true})
 	for _, img := range allImages {
 		for _, tag := range img.RepoTags {
 			if !strings.HasPrefix(tag, dockerImage+":") {
@@ -246,7 +245,7 @@ func (b *BuildRun) Run() (err error) {
 
 	if len(myImages) > 5 {
 		for _, imageTag := range myImages[5:] {
-			docker.ImageRemove(ctx, imageTag.Tag, types.ImageRemoveOptions{
+			docker.ImageRemove(ctx, imageTag.Tag, image.RemoveOptions{
 				PruneChildren: true,
 			})
 		}
@@ -297,7 +296,7 @@ func (b *BuildRun) Run() (err error) {
 
 			var in, out []byte
 
-			in, err = ioutil.ReadFile(filePath)
+			in, err = os.ReadFile(filePath)
 			if err != nil {
 				return
 			}
@@ -307,7 +306,7 @@ func (b *BuildRun) Run() (err error) {
 				return
 			}
 
-			err = ioutil.WriteFile(filePath, out, 0600)
+			err = os.WriteFile(filePath, out, 0600)
 			if err != nil {
 				return
 			}
