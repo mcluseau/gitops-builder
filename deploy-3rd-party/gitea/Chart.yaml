@@ -1,0 +1,8 @@
+apiVersion: v2
+name: gitea
+description: Simple Helm chart for Gitea on Kubernetes
+
+type: application
+version: "1.20.3"
+
+appVersion: "1.20.3"

@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  labels:
+    {{- include "gitea.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: gitea
+  ports:
+  - name: ssh
+    port: 22
+  - name: http
+    port: 80
+    targetPort: 3000
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitea
+  labels:
+    {{- include "gitea.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: {{ .Values.gitea.repository }}:{{ .Values.gitea.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        volumeMounts:
+        - mountPath: /data
+          name: data
+{{- if false }}# .Values.ingress.host }}
+        - name: tls
+          mountPath: /tls
+      volumes:
+      - name: tls
+        secret:
+          secretName: gitea-crt
+{{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+{{- with .Values.gitea.storage.class }}
+      storageClassName: {{ . |quote }}
+{{- end }}
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.gitea.storage.request }}
+
