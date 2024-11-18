@@ -10,6 +10,8 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -200,13 +202,17 @@ func (g gitOps) Open(dotGitDir, dir string) (repo *git.Repository, err error) {
 	return
 }
 
-func (g gitOps) Tag(dir, branch string) (tag string, err error) {
-	repo, err := git.PlainOpen(dir + ".git") // FIXME ".git" should be given, not added
+func (g gitOps) BranchRef(dir, branch string) (repo *git.Repository, ref *plumbing.Reference, err error) {
+	repo, err = git.PlainOpen(dir + ".git") // FIXME ".git" should be given, not added
 	if err != nil {
 		return
 	}
+	ref, err = repo.Reference(plumbing.NewRemoteReferenceName("origin", branch), true)
+	return
+}
 
-	ref, err := repo.Reference(plumbing.NewRemoteReferenceName("origin", branch), true)
+func (g gitOps) Tag(dir, branch string) (tag string, err error) {
+	repo, ref, err := g.BranchRef(dir, branch)
 	if err != nil {
 		return
 	}
@@ -222,5 +228,48 @@ func (g gitOps) Tag(dir, branch string) (tag string, err error) {
 		}
 	}
 
+	return
+}
+
+func (g gitOps) Describe(dir, branch string) (describe string, err error) {
+	repo, ref, err := g.BranchRef(dir, branch)
+	if err != nil {
+		return
+	}
+
+	log, err := repo.Log(&git.LogOptions{
+		From:  ref.Hash(),
+		Order: git.LogOrderCommitterTime,
+	})
+	if err != nil {
+		return
+	}
+
+	commit := ref.String()[:7]
+	describe = commit
+	depth := 0
+
+	err = log.ForEach(func(c *object.Commit) (err error) {
+		tag, err := repo.TagObject(c.Hash)
+		if err == plumbing.ErrObjectNotFound {
+			depth += 1
+			return nil
+		}
+		if err != nil {
+			return
+		}
+
+		if depth == 0 {
+			describe = tag.Name
+		} else {
+			describe = fmt.Sprintf("%s-%d-g%s", tag.Name, depth, commit)
+		}
+
+		return storer.ErrStop
+	})
+
+	if err == storer.ErrStop {
+		err = nil
+	}
 	return
 }

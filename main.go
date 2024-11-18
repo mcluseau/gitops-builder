@@ -22,6 +22,7 @@ var (
 	slackHook     = pflag.String("slack-hook", "", "Slack notification hook")
 	builderURL    = pflag.String("url", "http://"+hostname, "builder's URL")
 	useExactTag   = pflag.Bool("use-exact-tag", false, "use tag name on commits with an annotated tag")
+	tagDescribe   = pflag.Bool("tag-describe", false, "tag builds with describe, not just the commit")
 )
 
 func main() {

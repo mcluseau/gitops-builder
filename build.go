@@ -151,9 +151,13 @@ func (b *BuildRun) Run() (err error) {
 	}
 
 	// run the build
-	var imageTag string
+	var srcTag, imageTag string
 
-	srcTag, err := g.Tag(srcDir, branchInfo.Source)
+	if *tagDescribe {
+		srcTag, err = g.Describe(srcDir, branchInfo.Source)
+	} else {
+		srcTag, err = g.Tag(srcDir, branchInfo.Source)
+	}
 	if err != nil {
 		err = fmt.Errorf("failed to get source tag: %w", err)
 		return
@@ -164,7 +168,11 @@ func (b *BuildRun) Run() (err error) {
 		imageTag = srcTag + branchInfo.DockerTagSuffix
 
 	} else {
-		overlayTag, err = g.Tag(overlayDir, branchInfo.Overlay)
+		if *tagDescribe {
+			overlayTag, err = g.Describe(overlayDir, branchInfo.Overlay)
+		} else {
+			overlayTag, err = g.Tag(overlayDir, branchInfo.Overlay)
+		}
 		if err != nil {
 			err = fmt.Errorf("failed to get overlay tag: %w", err)
 			return
