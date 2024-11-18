@@ -212,7 +212,15 @@ func (g gitOps) Tag(dir, branch string) (tag string, err error) {
 	}
 
 	tag = ref.String()[:7]
-	return
 
-	// TODO really go for a git describe equivalent? commit ID seems better in every case
+	if *useExactTag {
+		tagObj, err := repo.TagObject(ref.Hash())
+		if err == nil {
+			tag = tagObj.Name
+		} else if err != plumbing.ErrObjectNotFound {
+			return "", err // true error
+		}
+	}
+
+	return
 }
