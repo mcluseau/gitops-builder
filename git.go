@@ -237,11 +237,40 @@ func (g gitOps) Describe(dir, branch string) (describe string, err error) {
 		return
 	}
 
+	tags, err := repo.Tags()
+	if err != nil {
+		err = fmt.Errorf("failed to fetch tags: %w", err)
+		return
+	}
+
+	commitsTag := map[plumbing.Hash]string{}
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		tag, err := repo.TagObject(ref.Hash())
+		if err != nil {
+			return fmt.Errorf("failed to get tag details on %s: %w", ref.Name(), err)
+		}
+
+		commit, err := tag.Commit()
+		if err != nil {
+			return fmt.Errorf("failed to get tag commit on %s: %w", ref.Name(), err)
+		}
+
+		name := ref.Name().Short()
+		if prev, ok := commitsTag[commit.Hash]; !ok || prev < name {
+			commitsTag[commit.Hash] = name
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
 	log, err := repo.Log(&git.LogOptions{
 		From:  ref.Hash(),
 		Order: git.LogOrderCommitterTime,
 	})
 	if err != nil {
+		err = fmt.Errorf("failed to compute git log: %w", err)
 		return
 	}
 
@@ -250,19 +279,17 @@ func (g gitOps) Describe(dir, branch string) (describe string, err error) {
 	depth := 0
 
 	err = log.ForEach(func(c *object.Commit) (err error) {
-		tag, err := repo.TagObject(c.Hash)
-		if err == plumbing.ErrObjectNotFound {
+		tag := commitsTag[c.Hash]
+
+		if tag == "" {
 			depth += 1
 			return nil
 		}
-		if err != nil {
-			return
-		}
 
 		if depth == 0 {
-			describe = tag.Name
+			describe = tag
 		} else {
-			describe = fmt.Sprintf("%s-%d-g%s", tag.Name, depth, commit)
+			describe = fmt.Sprintf("%s-%d-g%s", tag, depth, commit)
 		}
 
 		return storer.ErrStop

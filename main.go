@@ -33,6 +33,20 @@ func main() {
 	bind := pflag.String("bind", ":80", "HTTP bind for triggers")
 	pflag.Parse()
 
+	if args := pflag.Args(); len(args) != 0 {
+		for _, arg := range args {
+			log.Printf("processing arg: %q", arg)
+			switch arg {
+			case "describe":
+				g := gitOps{log.Default()}
+				fmt.Println(g.Describe("", "main"))
+			default:
+				log.Fatal("unknown arg")
+			}
+		}
+		return
+	}
+
 	if appsRepo.Repo == "" {
 		log.Fatal("--apps-repo is mandatory")
 	}
