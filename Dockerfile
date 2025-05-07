@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.6.0
 
-from mcluseau/golang-builder:1.23.2 as build
+from mcluseau/golang-builder:1.24.2 as build
 
-from docker:27.3.1-cli-alpine3.20
+from docker:28.1.1-cli-alpine3.21
 entrypoint ["/bin/gitops-builder"]
 run apk add git openssh
 run git config --global user.email "builder@localhost" \

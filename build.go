@@ -368,12 +368,13 @@ func (b *BuildRun) Run() (err error) {
 
 	log.Print("- deploy commit: ", commit)
 
-	branchRef := plumbing.NewBranchReferenceName(branchInfo.Deploy)
+	sourceRef := plumbing.NewBranchReferenceName(branchInfo.Deploy)
+	targetRef := plumbing.NewRemoteReferenceName("origin", branchInfo.Deploy)
 
 	err = deploy.Push(&git.PushOptions{
 		RemoteName: "origin",
 		Auth:       gitAuth,
-		RefSpecs:   []config.RefSpec{config.RefSpec(branchRef + ":" + branchRef)},
+		RefSpecs:   []config.RefSpec{config.RefSpec(sourceRef + ":" + targetRef)},
 	})
 
 	return
