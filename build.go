@@ -16,7 +16,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -368,14 +367,22 @@ func (b *BuildRun) Run() (err error) {
 
 	log.Print("- deploy commit: ", commit)
 
-	sourceRef := plumbing.NewBranchReferenceName(branchInfo.Deploy)
-	targetRef := plumbing.NewRemoteReferenceName("origin", branchInfo.Deploy)
-
-	err = deploy.Push(&git.PushOptions{
+	opts := git.PushOptions{
 		RemoteName: "origin",
 		Auth:       gitAuth,
-		RefSpecs:   []config.RefSpec{config.RefSpec(sourceRef + ":" + targetRef)},
-	})
+		RefSpecs:   []config.RefSpec{config.RefSpec(branchInfo.Deploy + ":" + branchInfo.Deploy)},
+	}
+
+	log.Print("- git push ", opts.RemoteName, " ", opts.RefSpecs[0])
+
+	if false {
+		err = deploy.Push(&opts) // FIXME does not work (or a least not like git push)
+	} else {
+		cmd := exec.Command("git", "push", opts.RemoteName, string(opts.RefSpecs[0]))
+		cmd.Stderr = os.Stderr
+		cmd.Dir = deployDir + ".git"
+		err = cmd.Run()
+	}
 
 	return
 }

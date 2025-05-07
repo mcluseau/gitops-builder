@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/go-git/go-billy/v5/osfs"
@@ -108,19 +109,10 @@ retry:
 		return
 	}
 
-	if !isFresh {
-		found := false
-		for _, remoteURL := range remote.Config().URLs {
-			if remoteURL == repoURL {
-				found = true
-				break
-			}
-		}
-		if !found {
-			log.Printf("remote for origin is not %q, cloning from scratch", repoURL)
-			os.RemoveAll(targetDir)
-			goto retry
-		}
+	if !isFresh && !slices.Contains(remote.Config().URLs, repoURL) {
+		log.Printf("remote for origin is not %q, cloning from scratch", repoURL)
+		os.RemoveAll(targetDir)
+		goto retry
 	}
 
 	err = remote.Fetch(&git.FetchOptions{
@@ -146,11 +138,11 @@ retry:
 func (g gitOps) CleanBranch(branch, dir string) (err error) {
 	log := g.log
 
-	err = os.RemoveAll(dir)
-	if err != nil {
-		err = fmt.Errorf("failed to clean %s: %w", dir, err)
-		return
-	}
+	// err = os.RemoveAll(dir)
+	// if err != nil {
+	// 	err = fmt.Errorf("failed to clean %s: %w", dir, err)
+	// 	return
+	// }
 	err = os.MkdirAll(dir, 0750)
 	if err != nil {
 		err = fmt.Errorf("failed to create %s: %w", dir, err)
@@ -176,13 +168,22 @@ func (g gitOps) CleanBranch(branch, dir string) (err error) {
 		return
 	}
 
-	if err = w.Clean(&git.CleanOptions{}); err != nil {
-		err = fmt.Errorf("failed to clean: %w", err)
-		return
-	}
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	w.Checkout(&git.CheckoutOptions{
+		Branch: branchRef,
+		Create: true,
+		Force:  true,
+	})
 
-	if err = w.Reset(&git.ResetOptions{Commit: ref.Hash(), Mode: git.HardReset}); err != nil {
-		err = fmt.Errorf("failed to reset: %w", err)
+	w.Reset(&git.ResetOptions{
+		Commit: ref.Hash(),
+		Mode:   git.HardReset,
+	})
+
+	if err = w.Clean(&git.CleanOptions{
+		Dir: true,
+	}); err != nil {
+		err = fmt.Errorf("failed to clean: %w", err)
 		return
 	}
 
