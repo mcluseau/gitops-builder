@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.6.0
 
-from mcluseau/golang-builder:1.24.2 as build
+from mcluseau/golang-builder:1.24.4 as build
+run strip /go/bin/*
 
 from docker:28.2.2-cli-alpine3.22
 entrypoint ["/bin/gitops-builder"]
