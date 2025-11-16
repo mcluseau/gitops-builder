@@ -216,7 +216,8 @@ func (b *BuildRun) Run() (err error) {
 		}
 	}
 
-	err = pushImage(log, appDir, dockerImage)
+	err = execCmd(log, srcDir, "docker", "push", dockerImage)
+	// err = pushImage(log, appDir, dockerImage)
 	if err != nil {
 		return
 	}

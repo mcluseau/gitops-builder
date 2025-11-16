@@ -70,7 +70,7 @@ spec:
         - mountPath: /data
           name: data
           subPath: builder
-      - image: docker:23.0.4-dind
+      - image: docker:29.0.1-dind
         imagePullPolicy: IfNotPresent
         name: docker
         securityContext:
