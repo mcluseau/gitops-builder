@@ -2,7 +2,7 @@
 image:
   repository: mcluseau/gitops-builder
   pullPolicy: IfNotPresent
-  tag: "9f69dc6"
+  tag: "50ad548"
 
 ingress:
   host: ""
