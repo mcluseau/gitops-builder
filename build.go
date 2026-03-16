@@ -258,6 +258,16 @@ func (b *BuildRun) Run() (err error) {
 		}
 	}
 
+	if app.Deploy != "" {
+		if err = b.updateDeploy(appDir, g, app, branchInfo, build, imageTag); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (b *BuildRun) updateDeploy(appDir string, g gitOps, app App, branchInfo *BranchInfo, build Build, imageTag string) (err error) {
 	// update the deployment
 	deployDir := filepath.Join(appDir, "deploy")
 	if err = g.FetchBranch(app.Deploy, branchInfo.Deploy, deployDir); err != nil {
