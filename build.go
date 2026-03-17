@@ -200,11 +200,17 @@ func (b *BuildRun) Run() (err error) {
 			dockerArgs = append(dockerArgs, "--ssh=default="+sshAuthSock)
 		}
 
+		for _, args := range [][]string{app.DockerArgs, build.DockerArgs, branchInfo.DockerArgs} {
+			for _, arg := range args {
+				dockerArgs = append(dockerArgs, arg)
+			}
+		}
+
 		if overlayTag != "" {
 			dockerArgs = append(dockerArgs, "--build-arg", "OVERLAY_TAG="+overlayTag)
 		}
 
-		for _, args := range [][]string{dockerArgs, app.DockerArgs, build.DockerArgs, branchInfo.DockerArgs} {
+		for _, args := range [][]string{dockerArgs, app.BuildArgs, build.BuildArgs, branchInfo.BuildArgs} {
 			for _, arg := range args {
 				dockerArgs = append(dockerArgs, "--build-arg", arg)
 			}

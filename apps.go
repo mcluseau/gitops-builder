@@ -120,6 +120,7 @@ type App struct {
 	Name       string
 	Deploy     string
 	Builds     []Build
+	BuildArgs  []string `yaml:"build_args"`
 	DockerArgs []string `yaml:"docker_args"`
 }
 
@@ -129,6 +130,7 @@ type Build struct {
 	Docker        string
 	Branches      []*BranchInfo
 	DeployUpdates []DeployUpdate `yaml:"deploy_updates"`
+	BuildArgs     []string       `yaml:"build_args"`
 	DockerArgs    []string       `yaml:"docker_args"`
 }
 
@@ -137,6 +139,7 @@ type BranchInfo struct {
 	Overlay         string
 	Deploy          string
 	DockerTagSuffix string   `yaml:"docker_tag_suffix"`
+	BuildArgs       []string `yaml:"build_args"`
 	DockerArgs      []string `yaml:"docker_args"`
 }
 
