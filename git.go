@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5"
@@ -83,7 +84,14 @@ func (g gitOps) FetchBranch(repoURL, branch, targetDir string) (err error) {
 
 	log.Print("- fetching ", repoURL, " branch ", branch, " to ", dir)
 
+	tries := 50
 retry:
+	tries -= 1
+	if tries == 0 {
+		err = fmt.Errorf("too many retries")
+		return
+	}
+
 	isFresh := true
 	repo, err := git.PlainClone(dir, true, &git.CloneOptions{
 		URL:  repoURL,
@@ -111,7 +119,8 @@ retry:
 
 	if !isFresh && !slices.Contains(remote.Config().URLs, repoURL) {
 		log.Printf("remote for origin is not %q, cloning from scratch", repoURL)
-		os.RemoveAll(targetDir)
+		os.RemoveAll(dir)
+		time.Sleep(time.Second / 5)
 		goto retry
 	}
 
