@@ -15,7 +15,6 @@ var (
 	appsRepo     = RepoRef{}
 	appsFilePath string
 
-	appsCommit     string
 	currentProject Project
 )
 
@@ -107,6 +106,18 @@ func updateApps() {
 	msg, _, _ := strings.Cut(commit.Message, "\n")
 	msg = strings.TrimSpace(msg)
 	log.Printf("loaded %d apps (commit %s: %s)", len(project.apps), commit.ID().String()[:7], msg)
+	for _, app := range project.apps {
+		for _, build := range app.Builds {
+			for _, branch := range build.Branches {
+				if build.Source != "" {
+					log.Printf("- %s: trigger on %s branch %s [source]", app.Name, build.Source, branch.Source)
+				}
+				if build.Overlay != "" {
+					log.Printf("- %s: trigger on %s branch %s [overlay]", app.Name, build.Overlay, branch.Overlay)
+				}
+			}
+		}
+	}
 
 	currentProject = project
 }

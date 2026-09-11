@@ -88,6 +88,7 @@ func triggerFromURL(u, branch string) (ok bool) {
 		return
 	}
 
+	repo = strings.TrimLeft(repo, "/")
 	repo = strings.TrimSuffix(repo, ".git")
 
 	log.Print("trigger: ", repo, " branch ", branch)
